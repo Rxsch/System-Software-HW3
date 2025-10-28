@@ -809,7 +809,7 @@ void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
    }
 
 
-if(atoi(tokens[*tokens_index]) == eqsym){
+else if(atoi(tokens[*tokens_index]) == eqsym){
        
 /* if token == eqlsym
 get next token
@@ -901,9 +901,9 @@ expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly
     IR[*IR_size].M = 13;
 }
 else{
-printf("Error: arithmetic equations must contain operands, parentheses, numbers, or symbols\n");
-       fprintf(assembly_code, "Error: arithmetic equations must contain operands, parentheses, numbers, or symbols\n");
-       exit(1);
+printf("Error: expected a comparison operator (=, <>, <, <=, >, >=) \n");
+fprintf(assembly_code, "Error: expected a comparison operator (=, <>, <, <=, >, >=) \n");
+exit(1);
    }
 }
 
