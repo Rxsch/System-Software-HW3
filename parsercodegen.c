@@ -1,63 +1,3 @@
-TOKENS.TXT follows format:
-29 
-2 x 
-16 
-2 y 
-17 
-20 
-22 
-2 y 
-9 
-2 x 
-24 
-31 
-2 y 
-23 
-17 
-31 
-2 x 
-4 
-3 1 
-17 
-21 
-18
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 Assignment:
 HW3 - Parser and Code Generator for PL/0
@@ -225,24 +165,35 @@ int main() {
    initializeProgram(tokens, &index, symbol_table, &table_size, IR, &IR_size, assembly_code);
 
 
-   //for validating IR ONLY (for now)
-   printf("OP\tL\tM\n");
+   printf("Assembly Code:\n\n");
+   printf("Line\tOP\tL\tM\n");
+
+
+   //displays assembly code in terminal
+   for(int i = 0; i <= IR_size; i++) {
+       printf("%d\t%s\t%d\t%d\n", i, IR[i].OP_s, IR[i].L, IR[i].M);
+   }
+
+
+   printf("\nSymbol Table:\n\n");
+   printf("Kind | Name\t| Value | Level | Address | Mark\n");
+   printf("---------------------------------------------------\n");
+
+
+   //displays symbol table in terminal
+   for(int i = 1 ; i < table_size; i++) {
+       if(symbol_table[i].kind == 1) {
+           printf("%4d | \t%7s | %5d | %5d | - | %5d\n", symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].mark);
+       }
+       else {
+           printf("%4d | \t%7s | %5d | %5d | %7d | %5d\n", symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].addr, symbol_table[i].mark);
+       }
+   }
+
+
+   //writes the PM/0 code in format OP L M in output file, elf.txt
    for(int i = 0; i <= IR_size; i++) {
        fprintf(assembly_code, "%d %d %d\n", IR[i].OP, IR[i].L, IR[i].M);
-       printf("%s\t%d\t%d\n", IR[i].OP_s, IR[i].L, IR[i].M);
-
-
-   }
-  
-   //for validating SYMBOL TABLE only (for now)
-   printf("\nindex\tkind\tname\tvalue\tlevel\taddress\tmark\n");
-   for(int i = 1; i <= table_size; i++) {
-       if(symbol_table[i].kind == 1) { //constant variable - addr NOT used
-           printf("%d\t%d\t%s\t%d\t%d\t-\t%d\n", i, symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].mark);
-       }
-       else if(symbol_table[i].kind == 2){ //variable - number NOT used
-           printf("%d\t%d\t%s\t-\t%d\t%d\t%d\n", i, symbol_table[i].kind, symbol_table[i].name, symbol_table[i].level, symbol_table[i].addr, symbol_table[i].mark);
-       }
    }
 
 
@@ -593,6 +544,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            break;
   
        case beginsym:
+          
            do {
                (*tokens_index)++;
   
@@ -641,8 +593,6 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
   
            statement(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
   
-           IR[jpc_index].M = *tokens_index;
-  
            //checks for error of "if" and "then" not being followed by "fi"
            if(atoi(tokens[*tokens_index]) != fisym) {
                printf("Error: if and then must be followed by fi\n");
@@ -651,6 +601,8 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            }
  
            (*tokens_index)++;
+          
+           IR[jpc_index].M = *tokens_index;
           
            break;
       
@@ -680,6 +632,20 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            strcpy(IR[*IR_size].OP_s, "JPC");
   
            (*IR_size)++;
+          
+           statement(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+
+
+           //JMP 0 (loop_index)
+           IR[*IR_size].OP = 7;
+           IR[*IR_size].L = 0;
+           IR[*IR_size].M = loop_index;
+  
+           strcpy(IR[*IR_size].OP_s, "JMP");
+  
+           (*IR_size)++;
+          
+           IR[jpc_index].M = *tokens_index;
 
 
            break;
@@ -753,159 +719,137 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            (*IR_size)++;
   
            break;
+
+
+       //checks if token is empty
+       default:
+           break;
+
+
    }
 }
 
 
-//Working on this
+
+
 void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
-   /*
-   if token == evensym
-       get next token
-       EXPRESSION
-       emit EVEN
-   else
-       EXPRESSION
-      
-       if token == eqlsym
-           get next token
-           EXPRESSION
-           emit EQL
-       else if token == neqsym
-           get next token
-           EXPRESSION
-           emit NEQ
-       else if token == lessym
-           get next token
-           EXPRESSION
-           emit LSS
-       else if token == leqsym
-           get next token
-           EXPRESSION
-           emit LEQ
-       else if token == gtrsym
-           get next token
-           EXPRESSION
-           emit GTR
-       else if token == geqsym
-           get next token
-           EXPRESSION
-           emit GEQ
-       else
-           error
-   */
-     //EXPRESSION function call
-   //expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-   
-   //Need to check if statement logic
-   //First case: odd. if(if odd x then ...)
-   if(atoi(tokens[*tokens_index]) != evensym) {
-    (*tokens_index)++;
-    expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-    //Emit ODD
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = m; //Prefer to leave m blank for now.
+   ​​
+   //checks for modulus operator
+   if(atoi(tokens[*tokens_index]) == evensym) {
+     
+       (*tokens_index)++;
+     
+       expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+     
+       //EVEN 0 11
+       IR[*IR_size].OP = 2;
+       IR[*IR_size].L = 0;
+       IR[*IR_size].M = 11;
+ 
+       strcpy(IR[*IR_size].OP_s, "EVEN");
+ 
+       (*IR_size)++;
    }
+   //checks for every valid comparison operator
+    else {
+        expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+        if(atoi(tokens[*tokens_index]) == eqsym) {
 
 
-else if(atoi(tokens[*tokens_index]) == eqsym){
-       
-/* if token == eqlsym
-get next token
-EXPRESSION
-emit EQL
-OP L M (2, 0, m (8)? )
-*/  
-(*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit eqsym
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 8;
-}
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit EQL
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 5;
 
 
-else if(atoi(tokens[*tokens_index]) == neqsym){
-/*else if token == neqsym
-get next token
-EXPRESSION
-emit NEQ
-OP L M (2, 0, m (9)? )
-*/
-(*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit NEQ
-   IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 9;
-}
-//<
-else if(atoi(tokens[*tokens_index]) == lessym){
-/*else if token == lessym
-get next token
-EXPRESSION
-emit LSS
-OP L M (2, 0, m (10)? )
-*/
-(*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit LSS
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 10;
-}
-//<=
-else if (atoi(tokens[*tokens_index]) ==  leqsym){
-          /* get next token
-           EXPRESSION
-           emit LEQ
-           OP L M (2,0, m (11)?)
-           */
-          (*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit LEQ
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 11;
+            strcpy(IR[*IR_size].OP_s, "EQL");
+            (*IR_size)++;
+        }
 
 
+
+
+        else if(atoi(tokens[*tokens_index]) == neqsym)
+        {
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit NEQ
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 6;
+
+
+            strcpy(IR[*IR_size].OP_s, "NEQ");
+            (*IR_size)++;
+        }
+
+
+        else if(atoi(tokens[*tokens_index]) == lessym) {
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit LSS
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 7;
+
+
+            strcpy(IR[*IR_size].OP_s, "LSS");
+            (*IR_size)++;
+        }
+
+
+        else if (atoi(tokens[*tokens_index]) ==  leqsym) {
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit LEQ
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 8;
+
+
+            strcpy(IR[*IR_size].OP_s, "LEQ");
+            (*IR_size)++;
+        }
+
+
+        else if(atoi(tokens[*tokens_index]) ==gtrsym) {
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit GTR
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 9;
+
+
+            strcpy(IR[*IR_size].OP_s, "GTR");
+            (*IR_size)++;
+        }
+
+
+        else if (atoi(tokens[*tokens_index]) ==geqsym) {
+            (*tokens_index)++;
+            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+            //Emit GEQ
+            IR[*IR_size].OP = 2;
+            IR[*IR_size].L = 0;
+            IR[*IR_size].M = 10;
+
+
+            strcpy(IR[*IR_size].OP_s, "GEQ");
+            (*IR_size)++;
+
+
+        }
+        else {
+            printf("Error: condition must contain comparison operator\n");
+            fprintf(assembly_code, "Error: condition must contain comparison operator \n");
+            exit(1);
+        }
+    }
 }
-//>
-else if(atoi(tokens[*tokens_index]) ==gtrsym){
-/*
-else if token == gtrsym
-get next token
-EXPRESSION
-emit gtr
-Op L m(2, 0, m (12) ?)
-*/
-(*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit GTR
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 12;
-}
-//>=
-else if (atoi(tokens[*tokens_index]) ==geqsym){
-/*get next token
-EXPRESSION
-emit GEQ
-OP L M (2, 0 , m (13)?)
-*/(*tokens_index)++;
-expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-//Emit GEQ
-    IR[*IR_size].OP = 2;
-    IR[*IR_size].L = 0;
-    IR[*IR_size].M = 13;
-}
-else{
-printf("Error: expected a comparison operator (=, <>, <, <=, >, >=) \n");
-fprintf(assembly_code, "Error: expected a comparison operator (=, <>, <, <=, >, >=) \n");
-exit(1);
-   }
-}
+
 
 void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
 
@@ -926,7 +870,7 @@ void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_ta
            IR[*IR_size].L = 0;
            IR[*IR_size].M = 1;
       
-           strcpy(IR[*IR_size].OP_s, "ADD");
+           strcpy(IR[*IR_size].OP_s, "OPR");
       
            (*IR_size)++;
 
@@ -942,7 +886,7 @@ void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_ta
            IR[*IR_size].L = 0;
            IR[*IR_size].M = 2;
       
-           strcpy(IR[*IR_size].OP_s, "SUB");
+           strcpy(IR[*IR_size].OP_s, "OPR");
       
            (*IR_size)++;
        }
@@ -969,7 +913,7 @@ void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[],
            IR[*IR_size].L = 0;
            IR[*IR_size].M = 3;
       
-           strcpy(IR[*IR_size].OP_s, "MUL");
+           strcpy(IR[*IR_size].OP_s, "OPR");
       
            (*IR_size)++;
        }
@@ -984,7 +928,7 @@ void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[],
            IR[*IR_size].L = 0;
            IR[*IR_size].M = 4;
       
-           strcpy(IR[*IR_size].OP_s, "DIV");
+           strcpy(IR[*IR_size].OP_s, "OPR");
       
            (*IR_size)++;
        }
@@ -1044,6 +988,7 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
        IR[*IR_size].M = number;
       
        strcpy(IR[*IR_size].OP_s, "LIT");
+(*IR_size)++;
       
        (*tokens_index)++;
    }
