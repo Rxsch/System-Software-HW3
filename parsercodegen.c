@@ -1,3 +1,5 @@
+
+
 /*
 Assignment:
 HW3 - Parser and Code Generator for PL/0
@@ -51,6 +53,7 @@ Due Date: Friday, October 31, 2025 at 11:59 PM ET
 
 
 #define MAX_SYMBOL_TABLE_SIZE 500
+#define MAX_CODE_SIZE 500
 #define MAX_STR_LEN 12
 
 
@@ -90,14 +93,16 @@ typedef enum {
    elsesym,        // else
    evensym         // even
 } token_type;
-//Assembly Code Line Op L M
+
+
 typedef struct {
    char OP_s[5];   // human-readable opcode format
    int OP;         // opcode
    int L;          // lexicographical level
    int M;          // m field
-} instruction_register;
-//Symbol table
+} instruction_list;
+
+
 typedef struct {
    int kind;       // const = 1, var = 2, proc = 3
    char name[12];  // name up to 11 chars
@@ -109,15 +114,16 @@ typedef struct {
 
 
 int symbolTableCheck(char id[], symbol table[], int size);
-void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void block(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
+void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void block(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
 int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, FILE * assembly_code);
-void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
-void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code);
+void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code);
+void emit(int op, int l, int m, instruction_list instructions[], int * instructions_size);
 
 
 int main() {
@@ -139,16 +145,16 @@ int main() {
 
 
    symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];     //struct declaration to store symbol table
-   instruction_register IR[MAX_SYMBOL_TABLE_SIZE]; //struct declaration to store instruction register
+   instruction_list instructions[MAX_CODE_SIZE];   //struct declaration to store instruction register
 
 
    //initializes starting size for struct declarations
    int table_size = 1;
-   int IR_size = 0;  
+   int instructions_size = 0;
 
 
    //2D array declaration to store tokens in input file
-   char tokens[500][MAX_STR_LEN];
+   char tokens[MAX_CODE_SIZE][MAX_STR_LEN];
 
 
    int index = 0;
@@ -159,10 +165,11 @@ int main() {
    while(fscanf(tokens_file, "%s", tokens[tokens_size]) != EOF) {
        tokens_size++;
    }
+   strcpy(tokens[tokens_size], "\0");
 
 
    //function call to initialize the process of validation grammar from input file
-   initializeProgram(tokens, &index, symbol_table, &table_size, IR, &IR_size, assembly_code);
+   initializeProgram(tokens, &index, symbol_table, &table_size, instructions, &instructions_size, assembly_code);
 
 
    printf("Assembly Code:\n\n");
@@ -170,8 +177,8 @@ int main() {
 
 
    //displays assembly code in terminal
-   for(int i = 0; i <= IR_size; i++) {
-       printf("%d\t%s\t%d\t%d\n", i, IR[i].OP_s, IR[i].L, IR[i].M);
+   for(int i = 0; i <= instructions_size; i++) {
+       printf("%d\t%s\t%d\t%d\n", i, instructions[i].OP_s, instructions[i].L, instructions[i].M);
    }
 
 
@@ -183,7 +190,7 @@ int main() {
    //displays symbol table in terminal
    for(int i = 1 ; i < table_size; i++) {
        if(symbol_table[i].kind == 1) {
-           printf("%4d | \t%7s | %5d | %5d | - | %5d\n", symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].mark);
+           printf("%4d | \t%7s | %5d | %5d | \t- | %5d\n", symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].mark);
        }
        else {
            printf("%4d | \t%7s | %5d | %5d | %7d | %5d\n", symbol_table[i].kind, symbol_table[i].name, symbol_table[i].val, symbol_table[i].level, symbol_table[i].addr, symbol_table[i].mark);
@@ -192,8 +199,8 @@ int main() {
 
 
    //writes the PM/0 code in format OP L M in output file, elf.txt
-   for(int i = 0; i <= IR_size; i++) {
-       fprintf(assembly_code, "%d %d %d\n", IR[i].OP, IR[i].L, IR[i].M);
+   for(int i = 0; i <= instructions_size; i++) {
+       fprintf(assembly_code, "%d %d %d\n", instructions[i].OP, instructions[i].L, instructions[i].M);
    }
 
 
@@ -219,23 +226,24 @@ int symbolTableCheck(char id[], symbol table[], int size) {
 }
 
 
-void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
+void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
+
+
+   int op, l, m; //declares variables for PM/0 instructions (OP, L, M)
 
 
    //JMP 0 3
-   IR[*IR_size].OP = 7;
-   IR[*IR_size].L = 0;
-   IR[*IR_size].M = 3;
+   op = 7;
+   l = 0;
+   m = 3;
 
 
-   strcpy(IR[*IR_size].OP_s, "JMP");
-
-
-   (*IR_size)++;
+   //function call to emit/store instruction into an instructions struct array
+   emit(op, l, m, instructions, instructions_size);
 
 
    //function call for BLOCK procedure
-   block(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+   block(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
    //converts string token to integer and checks if token matches periodsym
@@ -248,12 +256,12 @@ void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol sy
 
    //halts the successfully executed program
    //SYS 0 3
-   IR[*IR_size].OP = 9;
-   IR[*IR_size].L = 0;
-   IR[*IR_size].M = 3;
+   op = 9;
+   l = 0;
+   m = 3;
 
 
-   strcpy(IR[*IR_size].OP_s, "SYS");
+   emit(op, l, m, instructions, instructions_size);
 
 
    //sets all mark values to 1 to signify end of program
@@ -263,10 +271,14 @@ void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol sy
 }
 
 
-void block(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
-  
+void block(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
+
+
+   int op, l, m;
+
+
    //CONST-DECLARATION function call
-   constantDeclaration(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+   constantDeclaration(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
    //stores returned integer from VAR-DECLARATION function call
@@ -275,25 +287,22 @@ void block(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[]
 
 
    //INC 0 (3 + numVars)
-   IR[*IR_size].OP = 6;
-   IR[*IR_size].L = 0;
-   IR[*IR_size].M = 3 + numVars;
+   op = 6;
+   l = 0;
+   m = 3 + numVars;
 
 
-   strcpy(IR[*IR_size].OP_s, "INC");
-
-
-   (*IR_size)++;
+   emit(op, l, m, instructions, instructions_size);
 
 
    //STATEMENT function call
-
-
+   statement(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 }
 
 
-void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
-  
+void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
+
+
    //checks and enters do while loop if token is a constant token type
    if(atoi(tokens[*tokens_index]) == constsym) {
        do {
@@ -322,7 +331,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
 
 
                //stores identifier name into temporary array
-               char identifier[12];
+               char identifier[MAX_STR_LEN];
                strcpy(identifier, tokens[*tokens_index]);
 
 
@@ -406,7 +415,8 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
 
 
 int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, FILE * assembly_code) {
- 
+
+
    int numVars = 0; //initializes the number of variables to be stored in symbol table
 
 
@@ -417,7 +427,8 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
 
 
            (*tokens_index)++;
-          
+
+
            if(atoi(tokens[*tokens_index]) != identsym && atoi(tokens[*tokens_index]) != skipsym) {
                printf("Error: const, var, and read keywords must be followed by identifier\n");
                fprintf(assembly_code, "Error: const, var, and read keywords must be followed by identifier\n");
@@ -432,7 +443,7 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
                (*tokens_index)++;
 
 
-               char identifier[12];
+               char identifier[MAX_STR_LEN];
                strcpy(identifier, tokens[*tokens_index]);
 
 
@@ -444,7 +455,8 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
                    fprintf(assembly_code, "Error: symbol name has already been declared\n");
                    exit(1);
                }
-              
+
+
                //stores valid variable to symbol table
                symbol_table[*table_size].kind = 2;
                strcpy(symbol_table[*table_size].name, identifier);
@@ -467,7 +479,8 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
                }
            }
        } while(atoi(tokens[*tokens_index]) == commasym);
-      
+
+
        if(atoi(tokens[*tokens_index]) != semicolonsym && atoi(tokens[*tokens_index]) != identsym) {
            printf("Error: constant and variable declarations must be followed by a semicolon\n");
            fprintf(assembly_code, "Error: constant and variable declarations must be followed by a semicolon\n");
@@ -480,19 +493,23 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
            fprintf(assembly_code, "Error: multiple constant and variable declarations must be followed by a comma\n");
            exit(1);
        }
-      
+
+
        (*tokens_index)++;
    }
    return numVars; //returns total number of variables added
 }
 
 
-void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
+void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
   
-   char identifier[MAX_STR_LEN];
-   int table_index = 0;
-   int jpc_index = 0;
-   int loop_index = 0;
+   int op, l, m;
+
+
+   int table_index, jpc_index, loop_index; //declares variables to store index of symbol table, and M value of JPC and JMP instructions
+
+
+   char identifier[MAX_STR_LEN]; //declares temporary array to store identifiers
 
 
    switch(atoi(tokens[*tokens_index])) {
@@ -530,16 +547,15 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            (*tokens_index)++;
   
            //EXPRESSION function call
-           expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
   
            //STO 0 (symbol_table[table_index].addr)
-           IR[*IR_size].OP = 4;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = symbol_table[table_index].addr;
-  
-           strcpy(IR[*IR_size].OP_s, "STO");
-  
-           (*IR_size)++;
+           op = 4;
+           l = 0;
+           m = symbol_table[table_index].addr;
+
+
+           emit(op, l, m, instructions, instructions_size);
   
            break;
   
@@ -548,7 +564,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            do {
                (*tokens_index)++;
   
-               statement(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+               statement(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
   
            } while(atoi(tokens[*tokens_index]) == semicolonsym);
   
@@ -562,6 +578,14 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            (*tokens_index)++;
 
 
+           //checks for error of nested begin/end not being followed by ";"
+           if(strcmp(tokens[*tokens_index + 1], "\0") != 0 && atoi(tokens[*tokens_index]) != semicolonsym) {
+               printf("Error: nested end must be followed by semicolon\n");
+               fprintf(assembly_code, "Error: nested end must be followed by semicolon\n");
+               exit(1);
+           }
+
+
            break;
   
        case ifsym:
@@ -569,18 +593,17 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            (*tokens_index)++;
   
            //CONDITION function call
-           condition(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           condition(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
   
-           jpc_index = *tokens_index;
-  
-           //JPC 0 (jpc_index)
-           IR[*IR_size].OP = 8;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = jpc_index;
-  
-           strcpy(IR[*IR_size].OP_s, "JPC");
-  
-           (*IR_size)++;
+           jpc_index = *instructions_size;
+          
+           //JPC 0 (jpc_index * 3)
+           op = 8;
+           l = 0;
+           m = jpc_index * 3;
+
+
+           emit(op, l, m, instructions, instructions_size);
   
            //checks for error of "if" not being followed by "then"
            if(atoi(tokens[*tokens_index]) != thensym) {
@@ -591,8 +614,12 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
   
            (*tokens_index)++;
   
-           statement(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-  
+           statement(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+
+
+           instructions[jpc_index].M = *instructions_size * 3;
+
+
            //checks for error of "if" and "then" not being followed by "fi"
            if(atoi(tokens[*tokens_index]) != fisym) {
                printf("Error: if and then must be followed by fi\n");
@@ -601,17 +628,23 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            }
  
            (*tokens_index)++;
-          
-           IR[jpc_index].M = *tokens_index;
+
+
+           //checks for error of "fi" not being followed by ";"
+           if(atoi(tokens[*tokens_index]) != semicolonsym) {
+               printf("Error: fi must be followed by semicolon\n");
+               fprintf(assembly_code, "Error: fi must be followed by semicolon\n");
+               exit(1);
+           }
           
            break;
       
        case whilesym:
            (*tokens_index)++;
           
-           loop_index = (*tokens_index)++;
+           loop_index = *instructions_size;
           
-           condition(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           condition(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
          
            //checks for error of missing "do" after "while"
            if(atoi(tokens[*tokens_index]) != dosym) {
@@ -622,30 +655,28 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
           
            (*tokens_index)++;
           
-           jpc_index = *tokens_index;
-  
-           //JPC 0 (jpc_index)
-           IR[*IR_size].OP = 8;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = jpc_index;
-  
-           strcpy(IR[*IR_size].OP_s, "JPC");
-  
-           (*IR_size)++;
+           jpc_index = *instructions_size;
           
-           statement(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           //JPC 0 (jpc_index * 3)
+           op = 8;
+           l = 0;
+           m = jpc_index * 3;
+
+
+           emit(op, l, m, instructions, instructions_size);
+          
+           statement(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
            //JMP 0 (loop_index)
-           IR[*IR_size].OP = 7;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = loop_index;
-  
-           strcpy(IR[*IR_size].OP_s, "JMP");
-  
-           (*IR_size)++;
+           op = 7;
+           l = 0;
+           m = loop_index;
+
+
+           emit(op, l, m, instructions, instructions_size);
           
-           IR[jpc_index].M = *tokens_index;
+           instructions[jpc_index].M = *instructions_size * 3;
 
 
            break;
@@ -681,24 +712,23 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
           
            (*tokens_index)++;
           
-          
            //SYS 0 2
-           IR[*IR_size].OP = 9;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 2;
-  
-           strcpy(IR[*IR_size].OP_s, "SYS");
-  
-           (*IR_size)++;
+           op = 9;
+           l = 0;
+           m = 2;
+
+
+           emit(op, l, m, instructions, instructions_size);
+
+
           
            //STO 0 (symbol_table[table_index].addr)
-           IR[*IR_size].OP = 9;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = symbol_table[table_index].addr;
-  
-           strcpy(IR[*IR_size].OP_s, "SYS");
-  
-           (*IR_size)++;
+           op = 4;
+           l = 0;
+           m = symbol_table[table_index].addr;
+
+
+           emit(op, l, m, instructions, instructions_size);
           
            break;
 
@@ -707,237 +737,244 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
       
            (*tokens_index)++;
           
-           expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
           
            //SYS 0 1
-           IR[*IR_size].OP = 9;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 1;
-  
-           strcpy(IR[*IR_size].OP_s, "SYS");
-  
-           (*IR_size)++;
+           op = 9;
+           l = 0;
+           m = 1;
+
+
+           emit(op, l, m, instructions, instructions_size);
   
            break;
-
-
+      
        //checks if token is empty
        default:
            break;
-
-
    }
 }
 
 
+void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
+  
+   int op, l, m;
 
 
-void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
-   ​​
-   //checks for modulus operator
+   //checks for even operator
    if(atoi(tokens[*tokens_index]) == evensym) {
-     
+      
        (*tokens_index)++;
-     
-       expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-     
+      
+       expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+      
        //EVEN 0 11
-       IR[*IR_size].OP = 2;
-       IR[*IR_size].L = 0;
-       IR[*IR_size].M = 11;
- 
-       strcpy(IR[*IR_size].OP_s, "EVEN");
- 
-       (*IR_size)++;
+       op = 2;
+       l = 0;
+       m = 11;
+
+
+       emit(op, l, m, instructions, instructions_size);
    }
+
+
    //checks for every valid comparison operator
-    else {
-        expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-        if(atoi(tokens[*tokens_index]) == eqsym) {
+   else {
+      
+       expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+      
+       if(atoi(tokens[*tokens_index]) == eqsym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //EQL 0 5
+           op = 2;
+           l = 0;
+           m = 5;
 
 
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit EQL
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 5;
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else if(atoi(tokens[*tokens_index]) == neqsym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //NEQ 0 6
+           op = 2;
+           l = 0;
+           m = 6;
 
 
-            strcpy(IR[*IR_size].OP_s, "EQL");
-            (*IR_size)++;
-        }
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else if(atoi(tokens[*tokens_index]) == lessym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //LSS 0 7
+           op = 2;
+           l = 0;
+           m = 7;
 
 
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else if(atoi(tokens[*tokens_index]) == leqsym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //LEQ 0 8
+           op = 2;
+           l = 0;
+           m = 8;
 
 
-        else if(atoi(tokens[*tokens_index]) == neqsym)
-        {
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit NEQ
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 6;
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else if(atoi(tokens[*tokens_index]) == gtrsym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //GTR 0 9
+           op = 2;
+           l = 0;
+           m = 9;
 
 
-            strcpy(IR[*IR_size].OP_s, "NEQ");
-            (*IR_size)++;
-        }
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else if(atoi(tokens[*tokens_index]) == geqsym) {
+          
+           (*tokens_index)++;
+          
+           expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
+          
+           //GEQ 0 10
+           op = 2;
+           l = 0;
+           m = 10;
 
 
-        else if(atoi(tokens[*tokens_index]) == lessym) {
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit LSS
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 7;
-
-
-            strcpy(IR[*IR_size].OP_s, "LSS");
-            (*IR_size)++;
-        }
-
-
-        else if (atoi(tokens[*tokens_index]) ==  leqsym) {
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit LEQ
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 8;
-
-
-            strcpy(IR[*IR_size].OP_s, "LEQ");
-            (*IR_size)++;
-        }
-
-
-        else if(atoi(tokens[*tokens_index]) ==gtrsym) {
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit GTR
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 9;
-
-
-            strcpy(IR[*IR_size].OP_s, "GTR");
-            (*IR_size)++;
-        }
-
-
-        else if (atoi(tokens[*tokens_index]) ==geqsym) {
-            (*tokens_index)++;
-            expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
-            //Emit GEQ
-            IR[*IR_size].OP = 2;
-            IR[*IR_size].L = 0;
-            IR[*IR_size].M = 10;
-
-
-            strcpy(IR[*IR_size].OP_s, "GEQ");
-            (*IR_size)++;
-
-
-        }
-        else {
-            printf("Error: condition must contain comparison operator\n");
-            fprintf(assembly_code, "Error: condition must contain comparison operator \n");
-            exit(1);
-        }
-    }
+           emit(op, l, m, instructions, instructions_size);
+       }
+       else {
+          
+           //checks for error of program missing an operator in CONDITION function  
+           printf("Error: condition must contain comparison operator\n");
+           fprintf(assembly_code, "Error: condition must contain comparison operator\n");
+           exit(1);
+       }
+   }
 }
 
 
-void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
+void expression(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
+  
+   int op, l, m;
 
 
    //TERM function call
-   term(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+   term(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
    while(atoi(tokens[*tokens_index]) == plussym || atoi(tokens[*tokens_index]) == minussym) {
       
+       //checks if current token is "+"
        if(atoi(tokens[*tokens_index]) == plussym) {
            (*tokens_index)++;
           
-           term(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           term(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
           
            //ADD 0 1
-           IR[*IR_size].OP = 2;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 1;
-      
-           strcpy(IR[*IR_size].OP_s, "OPR");
-      
-           (*IR_size)++;
+           op = 2;
+           l = 0;
+           m = 1;
 
 
+           emit(op, l, m, instructions, instructions_size);
        }
+
+
+       //checks if current token is "-"
        else {
            (*tokens_index)++;
           
-           term(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           term(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
           
            //SUB 0 2
-           IR[*IR_size].OP = 2;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 2;
-      
-           strcpy(IR[*IR_size].OP_s, "OPR");
-      
-           (*IR_size)++;
+           op = 2;
+           l = 0;
+           m = 2;
+
+
+           emit(op, l, m, instructions, instructions_size);
        }
    }
 }
 
 
-void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
+void term(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
   
+   int op, l, m;
+
+
    //FACTOR function call
-   factor(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+   factor(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
    while(atoi(tokens[*tokens_index]) == multsym || atoi(tokens[*tokens_index]) == slashsym) {
       
+       //checks if current token is "*"
        if(atoi(tokens[*tokens_index]) == multsym) {
            (*tokens_index)++;
           
-           factor(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           factor(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
            //MUL 0 3
-           IR[*IR_size].OP = 2;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 3;
-      
-           strcpy(IR[*IR_size].OP_s, "OPR");
-      
-           (*IR_size)++;
+           op = 2;
+           l = 0;
+           m = 3;
+
+
+           emit(op, l, m, instructions, instructions_size);
        }
+
+
+       //checks if current token is "/"
        else if(atoi(tokens[*tokens_index]) == slashsym) {
            (*tokens_index)++;
           
-           factor(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+           factor(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
 
 
            //DIV 0 4
-           IR[*IR_size].OP = 2;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = 4;
-      
-           strcpy(IR[*IR_size].OP_s, "OPR");
-      
-           (*IR_size)++;
+           op = 2;
+           l = 0;
+           m = 4;
+
+
+           emit(op, l, m, instructions, instructions_size);
        }
    }
 }
 
 
-void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_register IR[], int * IR_size, FILE * assembly_code) {
+void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[], int * table_size, instruction_list instructions[], int * instructions_size, FILE * assembly_code) {
   
+   int op, l, m;
+
+
    if(atoi(tokens[*tokens_index]) == identsym) {
       
        (*tokens_index)++;
@@ -953,49 +990,56 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
            exit(1);
        }
       
+       //checks if identifier is a constant and pushes its literal value
        if(symbol_table[table_index].kind == 1) {
           
-           //LIT 0 (symbol_table[table_index].value)
-           IR[*IR_size].OP = 1;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = symbol_table[table_index].val;
-      
-           strcpy(IR[*IR_size].OP_s, "LIT");
-      
-           (*IR_size)++;
+           //LIT 0 (symbol_table[table_index].val)
+           op = 1;
+           l = 0;
+           m = symbol_table[table_index].val;
+
+
+           emit(op, l, m, instructions, instructions_size);
        }
+
+
+       //checks if identifier is a variable and loads its value through memory lookup
        else {
+
+
            //LOD 0 (symbol_table[table_index].addr)
-           IR[*IR_size].OP = 3;
-           IR[*IR_size].L = 0;
-           IR[*IR_size].M = symbol_table[table_index].addr;
-      
-           strcpy(IR[*IR_size].OP_s, "LOD");
-      
-           (*IR_size)++;
+           op = 3;
+           l = 0;
+           m = symbol_table[table_index].addr;
+
+
+           emit(op, l, m, instructions, instructions_size);
        }
       
        (*tokens_index)++;
    }
+
+
+   //checks if token is a number and pushes the literal value
    else if(atoi(tokens[*tokens_index]) == numbersym) {
        (*tokens_index)++;
       
        int number = atoi(tokens[*tokens_index]);
       
        //LIT 0 (number)
-       IR[*IR_size].OP = 1;
-       IR[*IR_size].L = 0;
-       IR[*IR_size].M = number;
-      
-       strcpy(IR[*IR_size].OP_s, "LIT");
-(*IR_size)++;
+       op = 1;
+       l = 0;
+       m = number;
+
+
+       emit(op, l, m, instructions, instructions_size);
       
        (*tokens_index)++;
    }
    else if(atoi(tokens[*tokens_index]) == lparentsym){
        (*tokens_index)++;
       
-       expression(tokens, tokens_index, symbol_table, table_size, IR, IR_size, assembly_code);
+       expression(tokens, tokens_index, symbol_table, table_size, instructions, instructions_size, assembly_code);
       
        if(atoi(tokens[*tokens_index]) != rparentsym) {
           
@@ -1006,8 +1050,6 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
        }
       
        (*tokens_index)++;
-
-
    }
    else {
       
@@ -1017,3 +1059,142 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
        exit(1);
    }
 }
+
+
+void emit(int op, int l, int m, instruction_list instructions[], int * instructions_size) {
+  
+   //checks if current index of instructions struct array is out of bounds
+   if(*instructions_size >= MAX_CODE_SIZE) {
+       printf("Index for instructions struct array is out of bounds...\n");
+       exit(1);
+   }
+   else {
+       switch(op) {
+           case 1:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "LIT");
+
+
+               (*instructions_size)++;
+
+
+               break;
+          
+           case 2:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "OPR");
+
+
+               (*instructions_size)++;
+
+
+               break;
+
+
+           case 3:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "LOD");
+
+
+               (*instructions_size)++;
+
+
+               break;
+          
+           case 4:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "STO");
+
+
+               (*instructions_size)++;
+
+
+               break;
+
+
+           case 5:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "CAL");
+
+
+               (*instructions_size)++;
+
+
+               break;
+          
+           case 6:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "INC");
+
+
+               (*instructions_size)++;
+
+
+               break;
+
+
+           case 7:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "JMP");
+
+
+               (*instructions_size)++;
+
+
+               break;
+          
+           case 8:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "JPC");
+
+
+               (*instructions_size)++;
+
+
+               break;
+
+
+           case 9:
+               instructions[*instructions_size].OP = op;
+               instructions[*instructions_size].L = l;
+               instructions[*instructions_size].M = m;
+              
+               strcpy(instructions[*instructions_size].OP_s, "SYS");
+
+
+               //checks that instruction is not HALT to increment size of instructions struct array
+               if(m != 3) {
+                   (*instructions_size)++;
+               }
+
+
+               break;
+          
+           default:
+               printf("Opcode is not within the PM/0 ISA bounds, 1 - 9...\n");
+               exit(1);
+       
