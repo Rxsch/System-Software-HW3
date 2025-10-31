@@ -1,11 +1,9 @@
-
-
 /*
 Assignment:
 HW3 - Parser and Code Generator for PL/0
 
 
-Author: Jarielys Cruz Gomez, Daniel Rangosch Montero
+Author: Jarielys Cruz Ggcccomez, Daniel Rangosch Montero
 
 
 Language: C (only)
@@ -96,7 +94,7 @@ typedef enum {
 
 
 typedef struct {
-   char OP_s[5];   // human-readable opcode format
+   char OP_s[4];   // human-readable opcode format
    int OP;         // opcode
    int L;          // lexicographical level
    int M;          // m field
@@ -173,12 +171,12 @@ int main() {
 
 
    printf("Assembly Code:\n\n");
-   printf("Line\tOP\tL\tM\n");
+   printf("Line\t OP  L\t M\n");
 
 
    //displays assembly code in terminal
    for(int i = 0; i <= instructions_size; i++) {
-       printf("%d\t%s\t%d\t%d\n", i, instructions[i].OP_s, instructions[i].L, instructions[i].M);
+       printf("%3d\t%s  %d %3d\n", i, instructions[i].OP_s, instructions[i].L, instructions[i].M);
    }
 
 
@@ -250,7 +248,15 @@ void initializeProgram(char tokens[][MAX_STR_LEN], int * tokens_index, symbol sy
    if(atoi(tokens[*tokens_index]) != periodsym) {
        printf("Error: program must end with period\n");
        fprintf(assembly_code, "Error: program must end with period\n");
-       exit(1);
+       exit(0);
+   }
+
+
+   //checks for error of continued code after "."
+   if(atoi(tokens[*tokens_index]) == periodsym && strcmp(tokens[*tokens_index + 1], "\0") != 0) {
+       printf("Error: program cannot continue after period\n");
+       fprintf(assembly_code, "Error: program cannot continue after period\n");
+       exit(0);
    }
 
 
@@ -313,7 +319,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
            if(atoi(tokens[*tokens_index]) != identsym && atoi(tokens[*tokens_index]) != skipsym) {
                printf("Error: const, var, and read keywords must be followed by identifier\n");
                fprintf(assembly_code, "Error: const, var, and read keywords must be followed by identifier\n");
-               exit(1);
+               exit(0);
            }
 
 
@@ -321,7 +327,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
            else if(atoi(tokens[*tokens_index]) == skipsym) {
                printf("Error: Scanning error detected by lexer (skipsym present)\n");
                fprintf(assembly_code, "Error: Scanning error detected by lexer (skipsym present)\n");
-               exit(1);
+               exit(0);
            }
 
 
@@ -343,7 +349,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
                if(table_index != 0) {
                    printf("Error: symbol name has already been declared\n");
                    fprintf(assembly_code, "Error: symbol name has already been declared\n");
-                   exit(1);
+                   exit(0);
                }
 
 
@@ -354,7 +360,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
                if(atoi(tokens[*tokens_index]) != eqsym) {
                    printf("Error: constants must be assigned with =\n");
                    fprintf(assembly_code, "Error: constants must be assigned with =\n");
-                   exit(1);
+                   exit(0);
                }
 
 
@@ -362,11 +368,22 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
 
 
                //checks for error of constant declaration without assigned integer value
-               if(atoi(tokens[*tokens_index]) != numbersym) {
+               //checks for error of constant declaration without assigned integer value
+               if(atoi(tokens[*tokens_index]) != numbersym && atoi(tokens[*tokens_index]) != skipsym) {
                    printf("Error: constants must be assigned an integer value\n");
                    fprintf(assembly_code, "Error: constants must be assigned an integer value\n");
-                   exit(1);
+                   exit(0);
                }
+
+
+               //checks for error of token representing lexical error token type, skipsym
+               else if(atoi(tokens[*tokens_index]) == skipsym) {
+                   printf("Error: Scanning error detected by lexer (skipsym present)\n");
+                   fprintf(assembly_code, "Error: Scanning error detected by lexer (skipsym present)\n");
+                   exit(0);
+               }
+
+
 
 
                (*tokens_index)++;
@@ -397,7 +414,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
        if(atoi(tokens[*tokens_index]) != semicolonsym && atoi(tokens[*tokens_index]) != identsym) {
            printf("Error: constant and variable declarations must be followed by a semicolon\n");
            fprintf(assembly_code, "Error: constant and variable declarations must be followed by a semicolon\n");
-           exit(1);
+           exit(0);
        }
 
 
@@ -405,7 +422,7 @@ void constantDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol 
        if(atoi(tokens[*tokens_index]) == identsym) {
            printf("Error: multiple constant and variable declarations must be followed by a comma\n");
            fprintf(assembly_code, "Error: multiple constant and variable declarations must be followed by a comma\n");
-           exit(1);
+           exit(0);
        }
 
 
@@ -432,12 +449,12 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
            if(atoi(tokens[*tokens_index]) != identsym && atoi(tokens[*tokens_index]) != skipsym) {
                printf("Error: const, var, and read keywords must be followed by identifier\n");
                fprintf(assembly_code, "Error: const, var, and read keywords must be followed by identifier\n");
-               exit(1);
+               exit(0);
            }
            else if(atoi(tokens[*tokens_index]) == skipsym) {
                printf("Error: Scanning error detected by lexer (skipsym present)\n");
                fprintf(assembly_code, "Error: Scanning error detected by lexer (skipsym present)\n");
-               exit(1);
+               exit(0);
            }
            else {
                (*tokens_index)++;
@@ -453,7 +470,7 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
                if(table_index != 0) {
                    printf("Error: symbol name has already been declared\n");
                    fprintf(assembly_code, "Error: symbol name has already been declared\n");
-                   exit(1);
+                   exit(0);
                }
 
 
@@ -475,7 +492,7 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
                if(atoi(tokens[*tokens_index]) == eqsym) {
                    printf("Error: variables are not assigned with =\n");
                    fprintf(assembly_code, "Error: variables are not assigned with =\n");
-                   exit(1);
+                   exit(0);
                }
            }
        } while(atoi(tokens[*tokens_index]) == commasym);
@@ -484,14 +501,14 @@ int variableDeclaration(char tokens[][MAX_STR_LEN], int * tokens_index, symbol s
        if(atoi(tokens[*tokens_index]) != semicolonsym && atoi(tokens[*tokens_index]) != identsym) {
            printf("Error: constant and variable declarations must be followed by a semicolon\n");
            fprintf(assembly_code, "Error: constant and variable declarations must be followed by a semicolon\n");
-           exit(1);
+           exit(0);
        }
 
 
        if(atoi(tokens[*tokens_index]) == identsym) {
            printf("Error: multiple constant and variable declarations must be followed by a comma\n");
            fprintf(assembly_code, "Error: multiple constant and variable declarations must be followed by a comma\n");
-           exit(1);
+           exit(0);
        }
 
 
@@ -525,14 +542,14 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(table_index == 0) {
                printf("Error: undeclared identifier\n");
                fprintf(assembly_code, "Error: undeclared identifier\n");
-               exit(1);
+               exit(0);
            }
   
            //checks for error of identifier not being of type "var"
            else if(symbol_table[table_index].kind != 2) {
                printf("Error: only variable values may be altered\n");
                fprintf(assembly_code, "Error: only variable values may be altered\n");
-               exit(1);
+               exit(0);
            }
   
            (*tokens_index)++;
@@ -541,7 +558,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != becomessym) {
                printf("Error: assignment statements must use :=\n");
                fprintf(assembly_code, "Error: assignment statements must use :=\n");
-               exit(1);
+               exit(0);
            }
   
            (*tokens_index)++;
@@ -572,18 +589,10 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != endsym) {
                printf("Error: begin must be followed by end\n");
                fprintf(assembly_code, "Error: begin must be followed by end\n");
-               exit(1);
+               exit(0);
            }
   
            (*tokens_index)++;
-
-
-           //checks for error of nested begin/end not being followed by ";"
-           if(strcmp(tokens[*tokens_index + 1], "\0") != 0 && atoi(tokens[*tokens_index]) != semicolonsym) {
-               printf("Error: nested end must be followed by semicolon\n");
-               fprintf(assembly_code, "Error: nested end must be followed by semicolon\n");
-               exit(1);
-           }
 
 
            break;
@@ -609,7 +618,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != thensym) {
                printf("Error: if must be followed by then\n");
                fprintf(assembly_code, "Error: if must be followed by then\n");
-               exit(1);
+               exit(0);
            }
   
            (*tokens_index)++;
@@ -624,18 +633,10 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != fisym) {
                printf("Error: if and then must be followed by fi\n");
                fprintf(assembly_code, "Error: if and then must be followed by fi\n");
-               exit(1);
+               exit(0);
            }
  
            (*tokens_index)++;
-
-
-           //checks for error of "fi" not being followed by ";"
-           if(atoi(tokens[*tokens_index]) != semicolonsym) {
-               printf("Error: fi must be followed by semicolon\n");
-               fprintf(assembly_code, "Error: fi must be followed by semicolon\n");
-               exit(1);
-           }
           
            break;
       
@@ -650,7 +651,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != dosym) {
                printf("Error: while must be followed by do\n");
                fprintf(assembly_code, "Error: while must be followed by do\n");
-               exit(1);
+               exit(0);
            }
           
            (*tokens_index)++;
@@ -671,7 +672,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            //JMP 0 (loop_index)
            op = 7;
            l = 0;
-           m = loop_index;
+           m = loop_index * 3;
 
 
            emit(op, l, m, instructions, instructions_size);
@@ -687,7 +688,7 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(atoi(tokens[*tokens_index]) != identsym) {
                printf("Error: const, var, and read keywords must be followed by identifier\n");
                fprintf(assembly_code, "Error: const, var, and read keywords must be followed by identifier\n");
-               exit(1);
+               exit(0);
            }
           
            (*tokens_index)++;
@@ -700,14 +701,14 @@ void statement(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            if(table_index == 0) {
                printf("Error: undeclared identifier\n");
                fprintf(assembly_code, "Error: undeclared identifier\n");
-               exit(1);
+               exit(0);
            }
   
            //checks for error of identifier not being of type "var"
            else if(symbol_table[table_index].kind != 2) {
                printf("Error: only variable values may be altered\n");
                fprintf(assembly_code, "Error: only variable values may be altered\n");
-               exit(1);
+               exit(0);
            }
           
            (*tokens_index)++;
@@ -872,7 +873,7 @@ void condition(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_tab
            //checks for error of program missing an operator in CONDITION function  
            printf("Error: condition must contain comparison operator\n");
            fprintf(assembly_code, "Error: condition must contain comparison operator\n");
-           exit(1);
+           exit(0);
        }
    }
 }
@@ -975,6 +976,15 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
    int op, l, m;
 
 
+   if(atoi(tokens[*tokens_index]) == skipsym) {
+       printf("Error: Scanning error detected by lexer (skipsym present)\n");
+       fprintf(assembly_code, "Error: Scanning error detected by lexer (skipsym present)\n");
+       exit(0);
+   }
+
+
+
+
    if(atoi(tokens[*tokens_index]) == identsym) {
       
        (*tokens_index)++;
@@ -987,7 +997,7 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
        if(table_index == 0) {
            printf("Error: undeclared identifier\n");
            fprintf(assembly_code, "Error: undeclared identifier\n");
-           exit(1);
+           exit(0);
        }
       
        //checks if identifier is a constant and pushes its literal value
@@ -1046,7 +1056,7 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
            //checks for error of program missing ")" after "("
            printf("Error: right parenthesis must follow left parenthesis\n");
            fprintf(assembly_code, "Error: right parenthesis must follow left parenthesis\n");
-           exit(1);
+           exit(0);
        }
       
        (*tokens_index)++;
@@ -1056,7 +1066,7 @@ void factor(char tokens[][MAX_STR_LEN], int * tokens_index, symbol symbol_table[
        //checks for error of missing identifiers, numbers, parentheses, or operands in FACTOR function
        printf("Error: arithmetic equations must contain operands, parentheses, numbers, or symbols\n");
        fprintf(assembly_code, "Error: arithmetic equations must contain operands, parentheses, numbers, or symbols\n");
-       exit(1);
+       exit(0);
    }
 }
 
@@ -1066,7 +1076,7 @@ void emit(int op, int l, int m, instruction_list instructions[], int * instructi
    //checks if current index of instructions struct array is out of bounds
    if(*instructions_size >= MAX_CODE_SIZE) {
        printf("Index for instructions struct array is out of bounds...\n");
-       exit(1);
+       exit(0);
    }
    else {
        switch(op) {
@@ -1196,5 +1206,9 @@ void emit(int op, int l, int m, instruction_list instructions[], int * instructi
           
            default:
                printf("Opcode is not within the PM/0 ISA bounds, 1 - 9...\n");
-               exit(1);
-       
+               exit(0);
+       }
+   }
+}
+
+
